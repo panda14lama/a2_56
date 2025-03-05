@@ -3,7 +3,7 @@ import mysql.connector
 connection = mysql.connector.connect(
     host ="localhost",
     user ="root",
-    passwd ="jegerbest",
+    passwd ="rgtt4Lama",
     database = "msd"
 )
 # sett inn data i tabellen students

@@ -62,9 +62,7 @@ class SensorGui(QWidget):
 
         self.setLayout(layout)
 
-"""
-lage tabell i databasen
-"""
+
     def createTable(self):
         """Sikrer at tabellen for sensorer finnes i databasen"""
         self.db_cursor.execute("""
@@ -77,9 +75,7 @@ lage tabell i databasen
         """)
         self.db_connection.commit()
 
-"""
-legge til sensor 
-"""
+
     def addSensor(self):
         """Legger til en ny sensor i databasen"""
         sensor_type = self.sensorTypeInput.text()

@@ -1,3 +1,5 @@
+from time import sleep
+
 import pymysql
 import serial
 import json
@@ -16,10 +18,15 @@ class SensorDataCollector:
         self.conn = pymysql.connect(**db_config)
         self.cursor = self.conn.cursor()
 
+    def send_command(self, command):
+        command_json = json.dumps({"Command": command})
+        self.ser.write(command_json.encode())
+        print(f"Sent: {command_json}")
+
     def insert_sensor_data(self, sensor_type, sensor_id, value):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute('''
-        INSERT INTO sensor_data (timestamp, sensor_type, sensor_id, value)
+        INSERT INTO sensordata (timestamp, sensor_type, sensor_id, value)
         VALUES (%s, %s, %s, %s)
         ''', (timestamp, sensor_type, sensor_id, value))
         self.conn.commit()
@@ -45,12 +52,15 @@ class SensorDataCollector:
             while True:
                 if self.ser.in_waiting > 0:
                     data = self.ser.readline().decode().strip()
-                    print(data)
+
+                    print(data,'dette')
                     print(f"Received: {data}")
                     self.process_data(data)
                     # Example: Insert dummy sensor data
                     self.insert_sensor_data("EksempelNavn1", "id-nummer", 23.5)
+                print('sleep')
                 time.sleep(self.interval)
+                print('sleep over')
         except KeyboardInterrupt:
             print("Program terminated")
         finally:
@@ -62,13 +72,17 @@ db_config = {
     'host': 'localhost',
     'user': 'root',
     'password': 'root',
-    'database': 'msd'
+    'database': 'sensordata'
 }
 
 # Set the frequency of the sensor in Hz
-frequency = 5  # For example, 10 Hz
+frequency = 1  # For example, 10 Hz
 
-collector = SensorDataCollector(port='COM5', baudrate=115200, db_config=db_config, frequency=frequency)
+collector = SensorDataCollector(port='COM5', baudrate=9600, db_config=db_config, frequency=frequency)
+collector.send_command("START")
 collector.run()
+
+time.sleep(30)
+collector.send_command("STOP")
 
 

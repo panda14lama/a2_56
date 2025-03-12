@@ -3,134 +3,112 @@ import json
 import time
 import serial
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit
-"""
-Konfigrasjon til database
-"""
-DB_NAME = "Sensordata.db"
-SERIAL_PORT = "COM3"  # Endre til riktig port for mikrokontrolleren (f.eks. "/dev/ttyUSB0" på Linux)
+
+DB_NAME = "sensor_data.db"
+SERIAL_PORT = "COM3"  # Endre til riktig port
 BAUD_RATE = 9600
 
-"""
-klasse for sensor gui
-"""
-class SensorGui(QWidget):
+class SensorApp(QWidget):
+    """ Programvindu for å legge til sensorer og sende/motta data. """
+
     def __init__(self):
         super().__init__()
-        self.initUI()
-        self.db_connection = sqlite3.connect(DB_NAME)
-        self.db_cursor = self.db_connection.cursor()
-        self.create_table()
+        self.setup_gui()
+        self.db = sqlite3.connect(DB_NAME)  # Koble til databasen
+        self.cursor = self.db.cursor()
+        self.setup_database()  # Lag databasen hvis den ikke finnes
 
-    def initUI(self):
-        self.setWindowTitle("Sensor Administrasjon")
+    def setupGui(self):
+        """ Lager menyen med knapper og tekstbokser. """
+        self.setWindowTitle("Sensor System")
         layout = QVBoxLayout()
 
-        #  Input for sensorregistrering
-        self.sensorTypeLabel = QLabel("Sensor Type:")
-        self.sensorTypeInput = QLineEdit()
-        layout.addWidget(self.sensorTypeLabel)
-        layout.addWidget(self.sensorTypeInput)
+        self.sensor_input = QLineEdit()
+        self.sensor_input.setPlaceholderText("Sensor Type")
+        layout.addWidget(self.sensor_input)
 
-        self.locationLabel = QLabel("Lokasjon:")
-        self.locationInput = QLineEdit()
-        layout.addWidget(self.locationLabel)
-        layout.addWidget(self.locationInput)
+        self.location_input = QLineEdit()
+        self.location_input.setPlaceholderText("Plassering")
+        layout.addWidget(self.location_input)
 
-        #  Knapp for å legge til sensor
-        self.addButton = QPushButton("Legg til Sensor")
-        self.addButton.clicked.connect(self.add_sensor)
-        layout.addWidget(self.addButton)
+        self.save_button = QPushButton("Lagre Sensor")
+        self.save_button.clicked.connect(self.save_sensor)
+        layout.addWidget(self.save_button)
 
-        #  Knapp for å hente og sende konfigurasjon
-        self.sendConfigButton = QPushButton("Send Konfigurasjon")
-        self.sendConfigButton.clicked.connect(self.send_configuration)
-        layout.addWidget(self.sendConfigButton)
+        self.send_button = QPushButton("Send Sensorinfo")
+        self.send_button.clicked.connect(self.send_to_microcontroller)
+        layout.addWidget(self.send_button)
 
-        # Knapp for å starte sensorinnsamling
-        self.startReadButton = QPushButton("Start Sensorinnsamling")
-        self.startReadButton.clicked.connect(self.start_reading)
-        layout.addWidget(self.startReadButton)
+        self.read_button = QPushButton("Start Måling")
+        self.read_button.clicked.connect(self.read_sensor_data)
+        layout.addWidget(self.read_button)
 
-        #  Statusfelt
-        self.status = QLabel("")
-        layout.addWidget(self.status)
-
-        #  Loggfelt
-        self.logField = QTextEdit()
-        self.logField.setReadOnly(True)
-        layout.addWidget(self.logField)
+        self.log_box = QTextEdit()
+        self.log_box.setReadOnly(True)
+        layout.addWidget(self.log_box)
 
         self.setLayout(layout)
 
-
-    def createTable(self):
-        """Sikrer at tabellen for sensorer finnes i databasen"""
-        self.db_cursor.execute("""
+    def setupDatabase(self):
+        """ Lager en tabell i databasen hvis den ikke finnes. """
+        self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS sensors (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT NOT NULL,
                 location TEXT NOT NULL,
-                installation_date TEXT NOT NULL
+                date_added TEXT NOT NULL
             )
         """)
-        self.db_connection.commit()
+        self.db.commit()
 
+    def saveSensor(self):
+        """ Lagrer sensorinfo i databasen. """
+        sensorType = self.sensor_input.text()
+        location = self.location_input.text()
 
-    def addSensor(self):
-        """Legger til en ny sensor i databasen"""
-        sensor_type = self.sensorTypeInput.text()
-        location = self.locationInput.text()
+        if not sensorType or not location:
+            self.log("Feil: Fyll ut begge feltene!")
+            return
 
-        if not sensor_type or not location:
-            self.status.setText(" Feil: Sensor Type og Lokasjon må fylles ut!")
+        self.cursor.execute("""
+            INSERT INTO sensors (type, location, date_added)
+            VALUES (?, ?, ?)
+        """, (sensorType, location, time.strftime("%Y-%m-%d")))
+        self.db.commit()
+
+        self.log(f"Lagret sensor: {sensor_type} på {location}")
+
+    def sendToMicrocontroller(self):
+        """ Sender sensorinfo til mikrokontrolleren. """
+        config_data = {"SensorConfiguration": {}}
+
+        self.cursor.execute("SELECT id, type FROM sensors")
+        sensors = self.cursor.fetchall()
+
+        for sensorId, sensorType in sensors:
+            if "temp" in sensorType.lower():
+                config_data["SensorConfiguration"]["TemperatureSensor"] = {"Type": sensorType, "SensorId": sensorId}
+            elif "accel" in sensorType.lower():
+                config_data["SensorConfiguration"]["Accelerometer"] = {"Type": sensorType, "SensorId": sensorId}
+
+        if not config_data["SensorConfiguration"]:
+            self.log("Ingen sensorer funnet!")
             return
 
         try:
-            self.db_cursor.execute("""
-                INSERT INTO sensors (type, location, installation_date) 
-                VALUES (?, ?, ?)
-            """, (sensor_type, location, time.strftime("%Y-%m-%d")))
-            self.db_connection.commit()
-
-            self.status.setText(f" Sensor '{sensor_type}' i '{location}' lagt til!")
-        except sqlite3.Error as e:
-            self.status.setText(f"️ Databasefeil: {e}")
-
-
-    def sendConfiguration(self):
-        """Henter sensorer fra databasen og sender konfigurasjonsdata til mikrokontrolleren"""
-        config_data = {
-            "command": "CONFIG",
-            "sensors": []
-        }
-
-        try:
-            self.db_cursor.execute("SELECT id, type, location FROM sensors")
-            sensors = self.db_cursor.fetchall()
-
-            for sensor in sensors:
-                config_data["sensors"].append({
-                    "id": sensor[0],
-                    "type": sensor[1],
-                    "location": sensor[2]
-                })
-
             with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) as ser:
                 ser.write(json.dumps(config_data).encode())
-                self.status.setText(" Konfigurasjon sendt til mikrokontrolleren!")
-                self.log_message(f"🔧 Sendte data: {json.dumps(config_data, indent=4)}")
+                self.log(f"Sendte data:\n{json.dumps(config_data, indent=4)}")
 
-        except sqlite3.Error as e:
-            self.status.setText(f" Databasefeil: {e}")
         except serial.SerialException as e:
-            self.status.setText(f"️ Seriell feil: {e}")
+            self.log(f"Seriell feil: {e}")
 
-    def startReading(self):
-        """Starter datainnsamling fra mikrokontrolleren"""
+    def readSensorData(self):
+        """ Leser data fra mikrokontrolleren og lagrer det. """
         try:
             with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1) as ser:
                 ser.write(json.dumps({"Command": "START"}).encode())
-                self.status.setText("📡 Starter innsamling av sensordata...")
+                self.log("Starter måling...")
 
                 while True:
                     line = ser.readline().decode("utf-8").strip()
@@ -139,44 +117,40 @@ class SensorGui(QWidget):
                             data = json.loads(line)
                             self.store_data(data)
                         except json.JSONDecodeError:
-                            self.log_message(" Feil ved dekoding av JSON")
+                            self.log("Feil: Klarte ikke å lese data.")
 
         except serial.SerialException as e:
-            self.status.setText(f" Seriell feil: {e}")
+            self.log(f"Seriell feil: {e}")
 
     def storeData(self, data):
-        """Lagrer mottatte sensordata i databasen"""
+        """ Lagrer sensordata i databasen. """
         try:
             if "temperature" in data:
-                self.db_cursor.execute("""
-                    INSERT INTO temperature_readings (sensorId, temperature, timestamp) 
+                self.cursor.execute("""
+                    INSERT INTO temperature_readings (sensorId, temperature, timestamp)
                     VALUES (?, ?, ?)
-                """, (data["temperature"]["sensorId"], data["temperature"]["temperature"], time.strftime("%Y-%m-%d %H:%M:%S")))
-                self.db_connection.commit()
-                self.log_message(f" Temperaturdata lagret: {data}")
+                """, (data["temperature"]["Sensor_id"], data["temperature"]["temperature"], time.strftime("%Y-%m-%d %H:%M:%S")))
+                self.db.commit()
+                self.log(f"Lagret temperaturdata: {data}")
 
             if "acceleration" in data:
-                self.db_cursor.execute("""
-                    INSERT INTO acceleration_readings (sensorId, x, y, z, timestamp) 
+                self.cursor.execute("""
+                    INSERT INTO acceleration_readings (sensorId, x, y, z, timestamp)
                     VALUES (?, ?, ?, ?, ?)
-                """, (data["acceleration"]["sensorId"], data["acceleration"]["x"], data["acceleration"]["y"], data["acceleration"]["z"], time.strftime("%Y-%m-%d %H:%M:%S")))
-                self.db_connection.commit()
-                self.log_message(f" Akselerasjonsdata lagret: {data}")
+                """, (data["acceleration"]["Sensor_id"], data["acceleration"]["x"], data["acceleration"]["y"], data["acceleration"]["z"], time.strftime("%Y-%m-%d %H:%M:%S")))
+                self.db.commit()
+                self.log(f"Lagret akselerasjonsdata: {data}")
 
         except sqlite3.Error as e:
-            self.log_message(f" Databasefeil: {e}")
+            self.log(f"Databasefeil: {e}")
 
-    def logMessage(self, message):
-        """Legger til meldinger i loggfeltet"""
-        self.logField.append(message)
+    def log(self, message):
+        """ Skriver meldinger i loggboksen. """
+        self.log_box.append(message)
 
 
-"""
- OPPSTART AV PROGRAMMET 
-"""
 if __name__ == "__main__":
     app = QApplication([])
-    gui = SensorGui()
+    gui = SensorApp()
     gui.show()
     app.exec_()
-

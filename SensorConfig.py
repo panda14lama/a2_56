@@ -1,20 +1,22 @@
-
-import serial
+import matplotlib.pyplot as plt
 import json
 import time
-import matplotlib.pyplot as plt
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit
+import serial
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit
 
-# Simulert lagring av sensorinformasjon
+"""
+Lagring av sensor-data
+"""
 data_storage = {
     "sensors": [],
-    "temperature_readings": [],
-    "acceleration_readings": []
+    "temperatureReadings": [],
+    "accelerationReadings": []
 }
 
-
-# GUI for Sensorregistrering
-class SensorGUI(QWidget):
+"""
+GUI for sensorregistrering
+"""
+class SensorGui(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -43,26 +45,39 @@ class SensorGUI(QWidget):
         self.setLayout(layout)
 
     def add_sensor(self):
-        sensor_type = self.sensorTypeInput.text()
+        sensorType = self.sensorTypeInput.text()
         location = self.locationInput.text()
 
-        sensor_id = len(data_storage["sensors"]) + 1
+        if not sensorType or not location:
+            self.status.setText("Feil: Sensor Type og Lokasjon må fylles ut!")
+            return
+
+        sensorId = len(data_storage["sensors"]) + 1
         data_storage["sensors"].append({
-            "sensor_id": sensor_id,
-            "type": sensor_type,
+            "sensorId": sensorId,
+            "type": sensorType,
             "location": location,
-            "installation_date": time.strftime("%Y-%m-%d")
+            "installationDate": time.strftime("%Y-%m-%d")
         })
 
-        self.status.setText(f"Sensor {sensor_id} lagt til!")
+        self.status.setText(f"Sensor {sensorId} lagt til!")
 
-
-# Simulert datainnsamling
+"""
+Datainnsamling
+"""
 class DataCollector:
     def __init__(self, port="COM3", baudrate=9600):
-        self.serial_conn = serial.Serial(port, baudrate, timeout=1)
+        try:
+            self.serial_conn = serial.Serial(port, baudrate, timeout=1)
+        except serial.SerialException as e:
+            print(f"Feil ved åpning av seriell port: {e}")
+            self.serial_conn = None
 
     def start_reading(self):
+        if not self.serial_conn:
+            print("Ingen seriell tilkobling.")
+            return
+
         self.serial_conn.write(json.dumps({"Command": "START"}).encode())
         while True:
             line = self.serial_conn.readline().decode("utf-8").strip()
@@ -75,24 +90,26 @@ class DataCollector:
 
     def store_data(self, data):
         if "temperature" in data:
-            data_storage["temperature_readings"].append({
-                "sensor_id": data["temperature"]["sensor_id"],
+            data_storage["temperatureReadings"].append({
+                "sensorId": data["temperature"]["sensorId"],
                 "temperature": data["temperature"]["temperature"],
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
             })
         if "acceleration" in data:
-            data_storage["acceleration_readings"].append({
-                "sensor_id": data["acceleration"]["sensor_id"],
+            data_storage["accelerationReadings"].append({
+                "sensorId": data["acceleration"]["sensorId"],
                 "x": data["acceleration"]["x"],
                 "y": data["acceleration"]["y"],
                 "z": data["acceleration"]["z"],
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
             })
 
-
-# Oppstart
+"""
+Oppstart av GUI
+"""
 if __name__ == "__main__":
     app = QApplication([])
-    gui = SensorGUI()
+    gui = SensorGui()
     gui.show()
     app.exec_()
+

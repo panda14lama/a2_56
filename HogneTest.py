@@ -18,31 +18,54 @@ class SensorDataCollector:
         self.conn = pymysql.connect(**db_config)
         self.cursor = self.conn.cursor()
 
-    def send_command(self, command):
+    def sendCommand(self, command):
         command_json = json.dumps({"Command": command})
         self.ser.write(command_json.encode())
         print(f"Sent: {command_json}")
 
-    def insert_sensor_data(self, sensor_type, sensor_id, value):
+    def insertTempratureData(self,sensor_id, temperature):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute('''
-        INSERT INTO sensordata (timestamp, sensor_type, sensor_id, value)
-        VALUES (%s, %s, %s, %s)
-        ''', (timestamp, sensor_type, sensor_id, value))
+        INSERT INTO temperaturereadings (sensor_id, timestamp, temperature)
+        VALUES (%s, %s, %s)
+        ''', (sensor_id, timestamp, temperature))
         self.conn.commit()
 
-    def process_data(self, data):
+    def processData(self, data):
         try:
-            data_json = json.loads(data)
-            if "SensorConfiguration" in data_json:
-                for sensor, details in data_json["SensorConfiguration"].items():
-                    print(f"Configured {sensor}: Type={details['Type']}, ID={details['Sensor_id']}")
-            elif "Command" in data_json:
-                command = data_json["Command"]
-                if command == "START":
-                    print("Starting data collection...")
-                elif command == "STOP":
-                    print("Stopping data collection...")
+            dataJson = json.loads(data)
+
+            print(dataJson)
+            if "acceleration" and "temperature" in dataJson:
+                print("hAR DATA A OG T")
+                temperature_stamp = dataJson['temperature']
+                print(temperature_stamp)
+                temperature = temperature_stamp['temperature']
+                #sensor_id_temp
+
+                acceleration = dataJson['acceleration']
+                acceleration_x = acceleration['x']
+                acceleration_y = acceleration['y']
+                acceleration_z = acceleration['z']
+
+                #self.insertTempratureData(self.sensor_id, temperature)
+
+            elif "acceleration" in dataJson:
+                print("aks")
+                acceleration = dataJson['acceleration']
+                acceleration_x = acceleration['x']
+                acceleration_y = acceleration['y']
+                acceleration_z = acceleration['z']
+
+            elif "temperature" in dataJson:
+                print("temp")
+                temprature_stamp = dataJson['temperature']
+                print(temprature_stamp)
+                temprature = temprature_stamp['temperature']
+
+            else:
+                print("no valid data recived")
+
         except json.JSONDecodeError:
             print("Received invalid JSON")
 
@@ -53,11 +76,10 @@ class SensorDataCollector:
                 if self.ser.in_waiting > 0:
                     data = self.ser.readline().decode().strip()
 
-                    print(data,'dette')
                     print(f"Received: {data}")
-                    self.process_data(data)
+                    self.processData(data)
                     # Example: Insert dummy sensor data
-                    self.insert_sensor_data("EksempelNavn1", "id-nummer", 23.5)
+
                 print('sleep')
                 time.sleep(self.interval)
                 print('sleep over')
@@ -79,10 +101,10 @@ db_config = {
 frequency = 1  # For example, 10 Hz
 
 collector = SensorDataCollector(port='COM5', baudrate=9600, db_config=db_config, frequency=frequency)
-collector.send_command("START")
+#collector.send_command("START")
 collector.run()
 
-time.sleep(30)
-collector.send_command("STOP")
+#time.sleep(30)
+#collector.send_command("STOP")
 
 

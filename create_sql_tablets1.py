@@ -9,7 +9,7 @@ connection = mysql.connector.connect(
 cursorObject = connection.cursor()
 
 studentRecord = """CREATE TABLE SENSORS (
-    sensor_id INT AUTO_INCREMENT PRIMARY KEY,
+    sensor_id INT PRIMARY KEY,
     type VARCHAR(50),
     location VARCHAR(100),
     installation_date DATE
@@ -52,7 +52,6 @@ cursorObject.execute(studentRecord3)
 studentRecord4 = """CREATE TABLE TEMPERATUREALARMS (
     alarm_id INT AUTO_INCREMENT PRIMARY KEY,
     reading_id INT,
-    timestamp DATETIME,
     parameter VARCHAR(50),
     FOREIGN KEY (reading_id) REFERENCES TEMPERATUREREADINGS(reading_id) 
 )"""
@@ -61,7 +60,6 @@ cursorObject.execute(studentRecord4)
 studentRecord5 = """CREATE TABLE ACCELERATIONALARMS (
     alarm_id INT AUTO_INCREMENT PRIMARY KEY,
     reading_id INT,
-    timestamp DATETIME,
     parameter VARCHAR(50),
     FOREIGN KEY (reading_id) REFERENCES ACCELERATIONREADINGS(reading_id) 
 )"""

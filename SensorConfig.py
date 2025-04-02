@@ -5,8 +5,22 @@ import time
 from mysql.connector import Error
 import serial  # For mikrokontrollerkommunikasjon
 
+
 class SensorApp:
+    """
+    GUI-program for registrering og konfigurasjon av sensorer.
+    Funksjonalitet:
+    - Lagrer sensordata i MySQL-database.
+    - Logger hendelser i GUI.
+    - Sender konfigurasjonsdata til mikrokontroller via seriellport.
+    """
+
     def __init__(self, root):
+        """
+        Initialiserer GUI, kobler til database, og setter opp grensesnitt.
+
+        :param root: Tkinter-hovedvindu
+        """
         self.root = root
         self.root.title("Sensor System")
 
@@ -38,10 +52,21 @@ class SensorApp:
             self.log(f"❌ Feil ved tilkobling til database: {e}")
 
     def log(self, message):
+        """
+        Logger meldinger til GUI-loggboksen.
+
+        :param message: Tekststreng som skal vises i loggen.
+        """
         self.log_box.insert(tk.END, message + "\n")
         self.log_box.see(tk.END)
 
     def send_to_microcontroller(self, sensor_type, location):
+        """
+        Sender sensordata til mikrokontroller via seriell tilkobling (USB).
+
+        :param sensor_type: Type sensor (f.eks. "temp", "akk")
+        :param location: Fysisk plassering for sensor
+        """
         try:
             # Tilpass COM-port og baudrate til mikrokontrolleren din!
             with serial.Serial('COM5', 9600, timeout=2) as ser:
@@ -52,6 +77,10 @@ class SensorApp:
             self.log(f"❌ Feil ved sending til mikrokontroller: {e}")
 
     def save_sensor(self):
+        """
+        Henter input fra GUI, lagrer ny sensor i databasen dersom den ikke finnes fra før,
+        og sender konfigurasjonsdata til mikrokontroller.
+        """
         sensor_type = self.sensor_input.get().strip()
         location = self.location_input.get().strip()
 
@@ -84,6 +113,7 @@ class SensorApp:
 
         except Error as e:
             self.log(f"❌ Databasefeil: {e}")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

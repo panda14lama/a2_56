@@ -3,7 +3,6 @@ from tkinter import messagebox, scrolledtext
 import mysql.connector
 import time
 from mysql.connector import Error
-import serial  # For mikrokontrollerkommunikasjon
 
 class SensorApp:
     def __init__(self, root):
@@ -33,57 +32,31 @@ class SensorApp:
                 database="sensordata"
             )
             self.cursor = self.db.cursor()
-            self.log("✅ Koblet til MySQL-database.")
+            self.log("Koblet til MySQL-database.")
         except Error as e:
-            self.log(f"❌ Feil ved tilkobling til database: {e}")
+            self.log(f"Feil ved tilkobling til database: {e}")
 
     def log(self, message):
         self.log_box.insert(tk.END, message + "\n")
         self.log_box.see(tk.END)
 
-    def send_to_microcontroller(self, sensor_type, location):
-        try:
-            # Tilpass COM-port og baudrate til mikrokontrolleren din!
-            with serial.Serial('COM5', 9600, timeout=2) as ser:
-                config_data = f"type={sensor_type};location={location};\n"
-                ser.write(config_data.encode('utf-8'))
-                self.log(f"📤 Sendt til mikrokontroller: {config_data.strip()}")
-        except serial.SerialException as e:
-            self.log(f"❌ Feil ved sending til mikrokontroller: {e}")
-
     def save_sensor(self):
-        sensor_type = self.sensor_input.get().strip()
-        location = self.location_input.get().strip()
+        sensor_type = self.sensor_input.get()
+        location = self.location_input.get()
 
         if not sensor_type or not location:
             messagebox.showwarning("Feil", "Begge feltene må fylles ut.")
             return
 
         try:
-            # Sjekk om sensoren finnes fra før
-            self.cursor.execute("""
-                SELECT sensor_id FROM SENSORS
-                WHERE type = %s AND location = %s
-            """, (sensor_type, location))
-            result = self.cursor.fetchone()
-
-            if result:
-                self.log("⚠️ Sensor finnes allerede – ikke lagret på nytt.")
-                return
-
-            # Sett inn sensor
             self.cursor.execute("""
                 INSERT INTO SENSORS (type, location, installation_date)
                 VALUES (%s, %s, %s)
             """, (sensor_type, location, time.strftime("%Y-%m-%d")))
             self.db.commit()
-            self.log(f"✅ Lagret sensor: {sensor_type} på {location}")
-
-            # Send til mikrokontroller
-            self.send_to_microcontroller(sensor_type, location)
-
+            self.log(f"Lagret sensor: {sensor_type} på {location}")
         except Error as e:
-            self.log(f"❌ Databasefeil: {e}")
+            self.log(f"Databasefeil: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()

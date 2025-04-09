@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
-from Sensor Db Fetcher import SensorDataFetcher
+from Sensor_Db import SensorDataFetcher
 
 
 class SensorGUI:

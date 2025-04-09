@@ -15,7 +15,7 @@ def hent_grenseverdier():
         conn = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="123456789",
+            password="12345678",
             database="sensordata"
         )
         cursor = conn.cursor(dictionary=True)

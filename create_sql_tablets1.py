@@ -2,7 +2,7 @@ import mysql.connector
 connection = mysql.connector.connect(
     host="localhost",
     user="root",
-    passwd="root",
+    passwd="rgtt4Lama",
     database="sensordata"
 )
 

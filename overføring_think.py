@@ -7,7 +7,7 @@ class HentData:
             self.db = mysql.connector.connect(
                 host="localhost",  # Kobler til MySQL-serveren på localhost
                 user="root",  # Brukernavn for databasen
-                password="Rishaa24",  # Passord for databasen
+                password="root",  # Passord for databasen
                 database="sensordata"  # Spesifiserer databasen som skal brukes
             )
             self.cursor = self.db.cursor(dictionary=True)  # Oppretter en cursor for å utføre spørringer

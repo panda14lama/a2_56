@@ -3,6 +3,13 @@ import numpy as np
 
 class HentData:
     def __init__(self):
+        self.diff_acceleration_x = {dx}
+        self.diff_acceleration_y = {dy}
+        self.diff_acceleration_z = {dz}
+
+        self.
+
+
         try:
             self.db = mysql.connector.connect(
                 host="localhost",  # Kobler til MySQL-serveren på localhost
@@ -30,27 +37,21 @@ class HentData:
         result = self.cursor.fetchall()
         if result:
             dx, dy, dz = result
-            magnitude = np.sqrt(dx**2 + dy**2 + dz**2)
             print(f"diff_acceleration_x{dx}")
             print(f"diff_acceleration_x{dy}")
             print(f"diff_acceleration_x{dz}")
-            print(f"Total akselerasjonsendring:{magnitude:.2f}")
+
         else:
             print("Ingen acc data funnet")
             return None  # Returnerer None hvis spørringen mislykkes
 
-
-
-
-    def send_til_thinkter(self, data):
-        if data:  # Sjekker om det er data som skal sendes
-            # Simulering av sending av data til Thinkter-serveren
-            print(f"Sender data til Thinkter: {data}")  # Her kan du implementere en faktisk HTTP-request
-        else:
-            print("Ingen data å sende")  # Viser melding hvis det ikke er data å sende
 
 # Eksempel på bruk av klassen
 data_henter = HentData()
 temperatur = data_henter.hent_temperatur()  # Henter temperaturdata fra MySQL
 diff_acceleration_x = data_henter.hent_diffacc()
 data_henter.send_til_thinkter(temperatur)  # Sender hentet data til Thinkter-serveren
+
+"""
+
+"""

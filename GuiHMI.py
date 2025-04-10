@@ -7,7 +7,7 @@ from DbTrans import HentData
 
 
 class SensorGUI:
-    def __init__(self, root):
+    def __init__(self, root, fetcher):
         self.root = root
         self.root.title("Sensorovervåking")
         self.root.geometry("1400x700")
@@ -19,7 +19,7 @@ class SensorGUI:
         self.accelerations = []
         self.timestamps = []
 
-        self.fetcher = HentData()
+        self.fetcher = fetcher
 
         self.history_start = tk.StringVar(value="00:00:00")
         self.history_end = tk.StringVar(value="23:59:59")
@@ -90,15 +90,17 @@ class SensorGUI:
 
     def update_gui(self):
         if self.view_mode.get() == "Live":
-            temp_data = self.fetcher.hent_temperatur()
-            accel_data = self.fetcher.hent_diffacc()
-            if not temp_data or not accel_data:
+            data = self.fetcher.return_data()
+            print(data)
+            print(data['temperature'])
+            if not data:
                 return
 
-            temperature = temp_data[0]['temperature']
-            x = accel_data[0]['diff_acceleration_x']
-            y = accel_data[0]['diff_acceleration_y']
-            z = accel_data[0]['diff_acceleration_z']
+            temperature = data['temperature']
+            x = data['x']
+            y = data['y']
+            z = data['z']
+
             timestamp = datetime.now().strftime("%H:%M:%S")
 
             self.timestamps.append(timestamp)
@@ -166,5 +168,6 @@ class SensorGUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = SensorGUI(root)
+    dataHenter = HentData()
+    app = SensorGUI(root, dataHenter)
     root.mainloop()

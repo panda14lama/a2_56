@@ -5,13 +5,15 @@ import mysql.connector  # Importerer MySQL-connektoren
 
 class HentData:
     def __init__(self):
+        # Initialiserer standardverdier for differensiell akselerasjon og temperatur
+
         self.diff_acceleration_x = 5
         self.diff_acceleration_y = 5
         self.diff_acceleration_z = 5
 
         self.temperatur = 5
 
-
+        # Forsøker å koble til MySQL-databasen
         try:
             self.db = mysql.connector.connect(
                 host="localhost",  # Kobler til MySQL-serveren på localhost
@@ -39,6 +41,7 @@ class HentData:
                 return self.cursor.fetchall()  # Henter alle resultatene fra spørringen
 
     def return_data(self):
+        # Returnerer en ordbok med temperaturen og differensiell akselerasjon
 
         return {
             "temperature": self.temperatur,
@@ -48,16 +51,17 @@ class HentData:
         }
 
     def run(self):
+        # Starter en uendelig løkke for kontinuerlig å hente data fra databasen
 
         while True:
 
-            diff_acceleartion = self.hent_diffacc()
-            self.diff_acceleration_x = diff_acceleartion[0]['diff_acceleration_x']
-            self.diff_acceleration_y = diff_acceleartion[0]['diff_acceleration_y']
-            self.diff_acceleration_z = diff_acceleartion[0]['diff_acceleration_z']
+            diff_acceleartion = self.hent_diffacc() # Henter differensiell akselerasjon
+            self.diff_acceleration_x = diff_acceleartion[0]['diff_acceleration_x'] # Oppdaterer x-verdi
+            self.diff_acceleration_y = diff_acceleartion[0]['diff_acceleration_y'] # Oppdaterer y-verdi
+            self.diff_acceleration_z = diff_acceleartion[0]['diff_acceleration_z'] # Oppdaterer z-verdi
 
-            temperatur = self.hent_temperatur()
-            self.temperatur = temperatur[0]['temperature']
+            temperatur = self.hent_temperatur() # Henter temperatur
+            self.temperatur = temperatur[0]['temperature'] # Oppdaterer temperaturverdi
 
 
 

@@ -6,8 +6,8 @@ import mysql.connector  # Importerer MySQL-connektoren
 class HentData:
     def __init__(self):
         self.diff_acceleration_x = 5
-        self.diff_acceleration_y = 5
-        self.diff_acceleration_z = 5
+        self.diff_acceleration_y = 2
+        self.diff_acceleration_z = 1
 
         self.temperatur = 5
 

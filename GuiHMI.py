@@ -22,6 +22,11 @@ class SensorGUI:
         self.accelerations = []
         self.timestamps = []
 
+        # Lagrer satte grenseverdier
+        self.threshold_temp_max = 0
+        self.threshold_temp_min = 0
+        self.threshold_acc = 0
+
         self.fetcher = fetcher  # Datainnhentingsobjekt, f.eks. fra database
 
         # Variabler for historisk visning
@@ -88,6 +93,13 @@ class SensorGUI:
         self.log_box.pack(fill=tk.BOTH, expand=True)
         ttk.Button(log_frame, text="Tøm logg", command=lambda: self.log_box.delete(0, tk.END)).pack(pady=5)
 
+        # Setter grenseverdier
+        temp_threshold = self.fetcher.hent_threshold_temp()
+        acc_threshold = self.fetcher.hent_threshold_acc()
+        self.threshold_temp_max = temp_threshold[0]['max_value']
+        self.threshold_temp_min = temp_threshold[0]['min_value']
+        self.threshold_acc = acc_threshold[0]['max_value']
+
     def log_event(self, event):
         self.log_box.insert(tk.END, event)     # Legger til melding i loggboksen
         self.log_box.yview_moveto(1)           # Ruller automatisk til bunnen
@@ -116,7 +128,7 @@ class SensorGUI:
             self.accel_label.config(text=f"Akselerasjon: x={x}, y={y}, z={z}")
 
             # Temperatur-alarm
-            if -4 <= temperature <= 28:
+            if self.threshold_temp_min <= temperature <= self.threshold_temp_max:
                 self.green_light.itemconfig(self.green_light_indicator, fill="green")
                 self.red_light.itemconfig(self.red_light_indicator, fill="gray")
             else:
@@ -125,8 +137,7 @@ class SensorGUI:
                 self.log_event(f"[{timestamp}] Temperaturalarm: {temperature} °C")
 
             # Akselerasjons-alarm
-            accel_threshold = 15
-            if any(abs(axis) > accel_threshold for axis in [x, y, z]):
+            if any(abs(axis) > self.threshold_acc for axis in [x, y, z]):
                 self.accel_green_light.itemconfig(self.accel_green_indicator, fill="gray")
                 self.accel_red_light.itemconfig(self.accel_red_indicator, fill="red")
                 self.log_event(f"[{timestamp}] Akselerasjonsalarm: x={x}, y={y}, z={z}")
@@ -165,8 +176,8 @@ class SensorGUI:
         # Plotter temperatur
         self.ax1.plot(time_data, temp_data, marker='o', label='Temperatur')
         self.ax1.axhline(y=0, color='gray', linestyle='--')
-        self.ax1.axhline(y=-4, color='red', linestyle='--', label='-4°C')
-        self.ax1.axhline(y=28, color='blue', linestyle='--', label='28°C')
+        self.ax1.axhline(y=self.threshold_temp_min, color='red', linestyle='--', label=f'{self.threshold_temp_min}°C')
+        self.ax1.axhline(y=self.threshold_temp_max, color='blue', linestyle='--', label=f'{self.threshold_temp_max}°C')
         self.ax1.set_title("Temperatur")
         self.ax1.set_ylabel("°C")
         self.ax1.set_ylim(-20, 40)
@@ -179,8 +190,8 @@ class SensorGUI:
         self.ax2.plot(time_data, [a[1] for a in acc_data], label='y', color="green")
         self.ax2.plot(time_data, [a[2] for a in acc_data], label='z', color="blue")
         self.ax2.axhline(y=0, color='gray', linestyle='--')
-        self.ax2.axhline(y=-15, color='red', linestyle='--', label='-15 m/s²')
-        self.ax2.axhline(y=15, color='blue', linestyle='--', label='15 m/s²')
+        self.ax2.axhline(y=-self.threshold_acc, color='red', linestyle='--', label=f'-{self.threshold_acc} m/s²')
+        self.ax2.axhline(y=self.threshold_acc, color='blue', linestyle='--', label=f'{self.threshold_acc} m/s²')
         self.ax2.set_title("Akselerasjon")
         self.ax2.set_ylabel("m/s²")
         self.ax2.set_ylim(-20, 20)

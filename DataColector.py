@@ -5,20 +5,24 @@ import serial
 import json
 import time
 
-
-
 class SensorDataCollector:
-    def __init__(self, port, baudrate, db_config, frequency):
+    def __init__(self, port, baudrate, frequency):
 
         self.port = port
         self.baudrate = baudrate
-        self.db_config = db_config
         self.frequency = frequency
         self.interval = 1 / frequency
         self.ser = serial.Serial(port, baudrate, timeout=1)
         time.sleep(2)  # Wait for the connection to establish
         self.conn = pymysql.connect(**db_config)
         self.cursor = self.conn.cursor()
+
+        self.db_config = {
+                'host': 'localhost',
+                'user': 'root',
+                'password': 'root',
+                'database': 'sensordata'
+            }
 
         self.running = True
 
@@ -282,20 +286,12 @@ class SensorDataCollector:
         self.running = 1
         print('run')
         self.sendCommandStop()
-        time.sleep(5)
-
-        print(self.ser.readline().decode().strip())
-        time.sleep(5)
-        print(self.ser.readline().decode().strip())
-        time.sleep(5)
-        print(self.ser.readline().decode().strip())
-        print(self.ser.readline().decode().strip())
+        time.sleep(1)
         print(self.ser.readline().decode().strip())
         self.setFrequency(self.frequency)
         time.sleep(1)
         print(self.ser.readline().decode().strip())
         time.sleep(1)
-
         self.getSensorID()
 
         self.getAlarmThresholds()
@@ -333,15 +329,16 @@ db_config = {
     'database': 'sensordata'
 }
 
-# Set the frequency of the sensor in Hz
-frequency = 1  # For example, 10 Hz
+if __name__ == "__main__":
+    # Set the frequency of the sensor in Hz
+    frequency = 1
 
-collector = SensorDataCollector(port='COM5', baudrate=9600, db_config=db_config, frequency=frequency)
+    collector = SensorDataCollector(port='COM5', baudrate=9600, frequency=frequency)
 
-time.sleep(5)
-#collector.sendCommandStart()
+    time.sleep(5)
+    #collector.sendCommandStart()
 
-collector.run()
+    collector.run()
 
 
 

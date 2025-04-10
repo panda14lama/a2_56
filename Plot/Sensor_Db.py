@@ -2,7 +2,7 @@ import mysql.connector
 from datetime import datetime
 
 class SensorDataFetcher:
-    def __init__(self, host="localhost", user="root", password="", database="sensordata"):
+    def __init__(self, host="localhost", user="root", password="root", database="sensordata"):
         self.config = {
             "host": host,
             "user": user,

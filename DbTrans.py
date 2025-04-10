@@ -17,7 +17,9 @@ class HentData:
                 host="localhost",  # Kobler til MySQL-serveren på localhost
                 user="root",  # Brukernavn for databasen
                 password="root",  # Passord for databasen
-                database="sensordata"  # Spesifiserer databasen som skal brukes
+                database="sensordata",  # Spesifiserer databasen som skal brukes
+                auth_plugin =  'mysql_native_password' # Specify the authentication plugin
+
             )
             self.cursor = self.db.cursor(dictionary=True)  # Oppretter en cursor for å utføre spørringer
         except mysql.connector.Error as err:
@@ -27,41 +29,60 @@ class HentData:
 
     def hent_temperatur(self):
         if self.cursor:  # Sjekker om tilkobling til databasen er vellykket
+            print('cursor')
             self.cursor.execute(
-                "SELECT temperature FROM sensordata.temperaturereadings WHERE sensor_id = 1 LIMIT 1;")  # Utfører SQL-spørring
+                "SELECT temperature FROM sensordata.temperaturereadings ORDER BY reading_id DESC  LIMIT 1;")  # Utfører SQL-spørring
             return self.cursor.fetchall()  # Henter alle resultatene fra spørringen
         return None  # Returnerer None hvis spørringen mislykkes
 
     def hent_diffacc(self):
         if self.cursor:  # Sjekker om tilkobling til databasen er vellykket
                 self.cursor.execute(
-                    "SELECT diff_acceleration_x,diff_acceleration_y,diff_acceleration_z FROM sensordata.accelerationreadings WHERE sensor_id = 2 LIMIT 1;")  # Utfører SQL-spørring
-                return self.cursor.fetchall()  # Henter alle resultatene fra spørringen
+                    "SELECT diff_acceleration_x,diff_acceleration_y,diff_acceleration_z FROM sensordata.accelerationreadings ORDER BY reading_id DESC LIMIT 1;")  # Utfører SQL-spørring
+
+                a = self.cursor.fetchall()  # Henter alle resultatene fra spørringen
+                print(a)
+                return a
+
 
     def return_data(self):
+        diff_acceleartion = self.hent_diffacc()
+        print(diff_acceleartion)
+
+        diff_acceleration_x = diff_acceleartion[0]['diff_acceleration_x']
+        diff_acceleration_y = diff_acceleartion[0]['diff_acceleration_y']
+        diff_acceleration_z = diff_acceleartion[0]['diff_acceleration_z']
+
+        temperatur = self.hent_temperatur()
+        temperatur = temperatur[0]['temperature']
 
         return {
-            "temperature": self.temperatur,
-            "x": self.diff_acceleration_x,
-            "y": self.diff_acceleration_y,
-            "z": self.diff_acceleration_z
+            "temperature": temperatur,
+            "x": diff_acceleration_x,
+            "y": diff_acceleration_y,
+            "z": diff_acceleration_z
         }
 
     def run(self):
 
         while True:
-
-            diff_acceleartion = self.hent_diffacc()
-            self.diff_acceleration_x = diff_acceleartion[0]['diff_acceleration_x']
-            self.diff_acceleration_y = diff_acceleartion[0]['diff_acceleration_y']
-            self.diff_acceleration_z = diff_acceleartion[0]['diff_acceleration_z']
-
-            temperatur = self.hent_temperatur()
-            self.temperatur = temperatur[0]['temperature']
+            try:
+                diff_acceleartion = self.hent_diffacc()
+                print(diff_acceleartion)
 
 
+                self.diff_acceleration_x = diff_acceleartion[0]['diff_acceleration_x']
+                self.diff_acceleration_y = diff_acceleartion[0]['diff_acceleration_y']
+                self.diff_acceleration_z = diff_acceleartion[0]['diff_acceleration_z']
 
-#data_henter = HentData()
+                temperatur = self.hent_temperatur()
+                self.temperatur = temperatur[0]['temperature']
+                print(diff_acceleartion,temperatur)
+            except:
+                print('feil')
 
-
-#data_henter.run()
+if __name__ == "__main__":
+    data_henter = HentData()
+    a =    data_henter.return_data()
+    print(a)
+    #data_henter.run()

@@ -339,11 +339,11 @@ frequency = 1  # For example, 10 Hz
 collector = SensorDataCollector(port='COM5', baudrate=9600, db_config=db_config, frequency=frequency)
 
 time.sleep(5)
-collector.sendCommandStart()
-time.sleep(5)
+#collector.sendCommandStart()
+
 collector.run()
 
-time.sleep(10)
+
 
 
 

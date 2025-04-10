@@ -89,24 +89,26 @@ class SensorGUI:
         self.log_box.yview_moveto(1)
 
     def update_gui(self):
-        data = self.fetcher.return_data()
-        if not data:
-            self.root.after(1000, self.update_gui)
-            return
-
-        temperature = data['temperature']
-        x = data['x']
-        y = data['y']
-        z = data['z']
-        timestamp = datetime.now().strftime("%H:%M:%S")
-
-        # Alltid legg til ny data
-        self.timestamps.append(timestamp)
-        self.temperatures.append(temperature)
-        self.accelerations.append((x, y, z))
-
-        # Vis kun GUI hvis vi er i Live-modus
         if self.view_mode.get() == "Live":
+            data = self.fetcher.return_data()
+            temp = self.fetcher.hent_temperatur()
+            print('dkskjkds',temp)
+            print(data)
+            print(data['temperature'])
+            if not data:
+                return
+
+            temperature = data['temperature']
+            x = data['x']
+            y = data['y']
+            z = data['z']
+
+            timestamp = datetime.now().strftime("%H:%M:%S")
+
+            self.timestamps.append(timestamp)
+            self.temperatures.append(temperature)
+            self.accelerations.append((x, y, z))
+
             self.temp_label.config(text=f"Temperatur: {temperature} °C")
             self.accel_label.config(text=f"Akselerasjon: x={x}, y={y}, z={z}")
 
@@ -128,31 +130,15 @@ class SensorGUI:
                 self.accel_red_light.itemconfig(self.accel_red_indicator, fill="gray")
 
             self.plot_data()
-
-        # Fortsett å oppdatere hvert 5. sekund
         self.root.after(1000, self.update_gui)
 
     def plot_data(self):
         self.ax1.clear()
         self.ax2.clear()
 
-        if self.view_mode.get() == "History":
-            start = self.history_start.get()
-            end = self.history_end.get()
-            try:
-                filtered = [(t, temp, acc) for t, temp, acc in
-                            zip(self.timestamps, self.temperatures, self.accelerations)
-                            if start <= t <= end]
-                if not filtered:
-                    raise ValueError
-                time_data, temp_data, acc_data = zip(*filtered)
-            except ValueError:
-                messagebox.showwarning("Feil i tidsvalg", "Fant ikke data i valgt tidsintervall.")
-                return
-        else:
-            temp_data = self.temperatures[-24:]
-            acc_data = self.accelerations[-24:]
-            time_data = self.timestamps[-24:]
+        temp_data = self.temperatures[-24:]
+        acc_data = self.accelerations[-24:]
+        time_data = self.timestamps[-24:]
 
         self.ax1.plot(time_data, temp_data, marker='o', label='Temperatur')
         self.ax1.axhline(y=0, color='gray', linestyle='--')

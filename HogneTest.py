@@ -6,7 +6,6 @@ import json
 import time
 
 
-
 class SensorDataCollector:
     def __init__(self, port, baudrate, db_config, frequency):
         self.port = port
@@ -33,12 +32,12 @@ class SensorDataCollector:
         self.acceleration_z2 = 0
 
     def sendCommand(self, command):
-        command_json = json.dumps({"Command":command})
+        command_json = json.dumps({"Command": command})
         self.ser.write(command_json.encode())
         print(f"Sent: {command_json}")
 
     def setFrequency(self, frequency):
-        command_json = json.dumps({"GatherFreq" : frequency})
+        command_json = json.dumps({"GatherFreq": frequency})
         self.ser.write(command_json.encode())
         print(f"Sent: {command_json}")
 
@@ -48,7 +47,7 @@ class SensorDataCollector:
     def sendCommandStop(self):
         self.sendCommand('STOP')
 
-    def insertTemperatureData(self,sensor_id, temperature):
+    def insertTemperatureData(self, sensor_id, temperature):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         try:
             self.cursor.execute('''
@@ -60,13 +59,15 @@ class SensorDataCollector:
         except pymysql.MySQLError as e:
             print(f"Error: {e}")
 
-    def insertAccelerationData(self, sensor_id, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z):
+    def insertAccelerationData(self, sensor_id, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x,
+                               diff_acceleration_y, diff_acceleration_z):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         try:
             self.cursor.execute('''
             INSERT INTO accelerationreadings (sensor_id, timestamp, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (sensor_id,timestamp, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z))
+            ''', (sensor_id, timestamp, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x,
+                  diff_acceleration_y, diff_acceleration_z))
             self.conn.commit()
             print('Acceleration data transferred')
         except pymysql.MySQLError as e:
@@ -108,8 +109,8 @@ class SensorDataCollector:
         self.temperature_sensor_id = jsonSensorData['SensorConfiguration']['TemperatureSensor']['Sensor_id']
         self.accelerometer_id = jsonSensorData['SensorConfiguration']['Accelerometer']['Sensor_id']
         print("SenorID found:")
-        print("temperature_sensor_id:",self.temperature_sensor_id)
-        print("accelerometer_id:",self.accelerometer_id)
+        print("temperature_sensor_id:", self.temperature_sensor_id)
+        print("accelerometer_id:", self.accelerometer_id)
         print()
 
     def getAlarmThresholds1(self):
@@ -130,7 +131,6 @@ class SensorDataCollector:
         print(f"Temperature min/max: {self.temperature_min_threshold}/{self.temperature_max_threshold}")
         print(f"Acceleration min/max: {self.acceleration_min_threshold}/{self.acceleration_max_threshold}")
         print()
-
 
     def getAlarmThresholds(self):
         try:
@@ -182,7 +182,6 @@ class SensorDataCollector:
                 else:
                     print("Temperature inside threshold")
 
-
                 acceleration = dataJson['acceleration']
                 sensor_id_acc = acceleration['sensor_id']
                 acceleration_x = acceleration['x']
@@ -197,7 +196,8 @@ class SensorDataCollector:
                 self.acceleration_y2 = acceleration_y
                 self.acceleration_z2 = acceleration_z
 
-                self.insertAccelerationData(sensor_id_acc,acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
+                self.insertAccelerationData(sensor_id_acc, acceleration_x, acceleration_y, acceleration_z,
+                                            diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
 
             elif "acceleration" in dataJson:
                 print("Acceleration data received")
@@ -217,7 +217,8 @@ class SensorDataCollector:
                 print(acceleration_z, acceleration_x, acceleration_y)
                 print(diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
 
-                self.insertAccelerationData(sensor_id_acc,acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
+                self.insertAccelerationData(sensor_id_acc, acceleration_x, acceleration_y, acceleration_z,
+                                            diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
 
             elif "temperature" in dataJson:
                 print("Temperature data received")
@@ -241,7 +242,7 @@ class SensorDataCollector:
 
     def run(self):
         print('run')
-        
+
         self.setFrequency(self.frequency)
         print(self.ser.readline().decode().strip())
         time.sleep(1)
@@ -292,5 +293,5 @@ time.sleep(5)
 
 collector.run()
 
-#time.sleep(30)
-#collector.send_command("STOP")
+# time.sleep(30)
+# collector.send_command("STOP")

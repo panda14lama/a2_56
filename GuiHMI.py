@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
-from overføring_think import HentData
+from DbTrans import HentData
 
 
 class SensorGUI:
@@ -108,7 +108,6 @@ class SensorGUI:
             self.temp_label.config(text=f"Temperatur: {temperature} °C")
             self.accel_label.config(text=f"Akselerasjon: x={x}, y={y}, z={z}")
 
-            # Midlertidige hardkodede grenser
             if -4 <= temperature <= 28:
                 self.green_light.itemconfig(self.green_light_indicator, fill="green")
                 self.red_light.itemconfig(self.red_light_indicator, fill="gray")

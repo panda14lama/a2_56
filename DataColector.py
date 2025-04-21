@@ -9,19 +9,8 @@ import threading
 
 
 class SensorDataCollector:
-    """
-    Klasse for å hente og behandle sanntidsdata fra temperatursensor og akselerometer via seriell port.
-    Støtter innsetting av målinger og alarmer til MySQL-database.
-    """
-
     def __init__(self, port, frequency):
-        """
-        Initialiserer objektet med seriell port, målefrekvens og databaseforbindelse.
 
-        Args:
-            port (str): COM-porten som sensoren er koblet til.
-            frequency (int): Antall målinger per sekund.
-        """
         self.port = port
         self.baudrate = 9600
         self.frequency = frequency
@@ -32,11 +21,11 @@ class SensorDataCollector:
         self.cursor = self.conn.cursor()
 
         self.db_config = {
-            'host': 'localhost',
-            'user': 'root',
-            'password': 'root',
-            'database': 'sensordata'
-        }
+                'host': 'localhost',
+                'user': 'root',
+                'password': 'root',
+                'database': 'sensordata'
+            }
 
         self.running = False
         self.running = False
@@ -56,43 +45,22 @@ class SensorDataCollector:
         self.acceleration_z2 = 0
 
     def sendCommand(self, command):
-        """
-        Sender kommando til mikrokontroller i JSON-format.
-
-        Args:
-            command (str): Kommandoen som skal sendes.
-        """
-        command_json = json.dumps({"Command": command})
+        command_json = json.dumps({"Command":command})
         self.ser.write(command_json.encode())
         print(f"Sent: {command_json}")
 
     def setFrequency(self, frequency):
-        """
-        Setter ønsket frekvens for datainnsamling.
-
-        Args:
-            frequency (int): Frekvens i Hz.
-        """
-        command_json = json.dumps({"GatherFreq": frequency})
+        command_json = json.dumps({"GatherFreq" : frequency})
         self.ser.write(command_json.encode())
         print(f"Sent: {command_json}")
 
     def sendCommandStart(self):
-        """Sender START-kommando til mikrokontroller."""
         self.sendCommand('START')
 
     def sendCommandStop(self):
-        """Sender STOP-kommando til mikrokontroller."""
         self.sendCommand('STOP')
 
-    def insertTemperatureData(self, sensor_id, temperature):
-        """
-        Setter inn temperaturmåling i databasen.
-
-        Args:
-            sensor_id (str): Sensorens ID.
-            temperature (float): Målt temperaturverdi.
-        """
+    def insertTemperatureData(self,sensor_id, temperature):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         try:
             self.cursor.execute('''
@@ -104,36 +72,19 @@ class SensorDataCollector:
         except pymysql.MySQLError as e:
             print(f"Error: {e}")
 
-    def insertAccelerationData(self, sensor_id, acceleration_x, acceleration_y, acceleration_z,
-                               diff_acceleration_x, diff_acceleration_y, diff_acceleration_z):
-        """
-        Setter inn akselerasjonsdata og differanser i databasen.
-
-        Args:
-            sensor_id (str): Sensorens ID.
-            acceleration_x/y/z (float): Akselerasjonsverdier.
-            diff_acceleration_x/y/z (float): Differanse fra forrige måling.
-        """
+    def insertAccelerationData(self, sensor_id, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         try:
             self.cursor.execute('''
-            INSERT INTO accelerationreadings (sensor_id, timestamp, acceleration_x, acceleration_y, acceleration_z,
-                                              diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
+            INSERT INTO accelerationreadings (sensor_id, timestamp, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (sensor_id, timestamp, acceleration_x, acceleration_y, acceleration_z,
-                  diff_acceleration_x, diff_acceleration_y, diff_acceleration_z))
+            ''', (sensor_id,timestamp, acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z))
             self.conn.commit()
             print('Acceleration data transferred')
         except pymysql.MySQLError as e:
             print(f"Error: {e}")
 
     def insertTemperatureAlarm(self, parameter):
-        """
-        Setter inn en temperaturalarm i databasen.
-
-        Args:
-            parameter (str): Alarmtype (f.eks. "HIGH ALARM TEMPERATURE").
-        """
         self.cursor.execute('SELECT reading_id FROM temperaturereadings ORDER BY reading_id DESC LIMIT 1;')
         reading_id = self.cursor.fetchall()
         try:
@@ -147,12 +98,6 @@ class SensorDataCollector:
             print(f"Error: {e}")
 
     def insertAccelerationAlarm(self, parameter):
-        """
-        Setter inn en akselerasjonsalarm i databasen.
-
-        Args:
-            parameter (str): Alarmtype (f.eks. "LOW ALARM ACCELERATION X").
-        """
         self.cursor.execute('SELECT reading_id FROM accelerationreadings ORDER BY reading_id DESC LIMIT 1;')
         reading_id = self.cursor.fetchall()
         try:
@@ -166,9 +111,6 @@ class SensorDataCollector:
             print(f"Error: {e}")
 
     def getSensorID(self):
-        """
-        Leser og lagrer sensor-ID-er fra seriell data.
-        """
         self.sendCommand("RETURN_DATA")
         time.sleep(1)
         data = self.ser.readline().decode().strip()
@@ -178,14 +120,12 @@ class SensorDataCollector:
         self.temperature_sensor_id = jsonSensorData['SensorConfiguration']['TemperatureSensor']['Sensor_id']
         self.accelerometer_id = jsonSensorData['SensorConfiguration']['Accelerometer']['Sensor_id']
         print("SenorID found:")
-        print("temperature_sensor_id:", self.temperature_sensor_id)
-        print("accelerometer_id:", self.accelerometer_id)
+        print("temperature_sensor_id:",self.temperature_sensor_id)
+        print("accelerometer_id:",self.accelerometer_id)
         print()
 
     def getAlarmThresholds1(self):
-        """
-        Leser inn grenseverdier for alarmer (versjon 1).
-        """
+
         self.cursor.execute('SELECT * FROM alarmthresholds where sensor_id = %s', self.temperature_sensor_id)
         temperature_thresholds = self.cursor.fetchall()
 
@@ -203,10 +143,8 @@ class SensorDataCollector:
         print(f"Acceleration min/max: {self.acceleration_min_threshold}/{self.acceleration_max_threshold}")
         print()
 
+
     def getAlarmThresholds(self):
-        """
-        Leser inn grenseverdier for temperatur og akselerasjon og håndterer feil.
-        """
         try:
             self.cursor.execute('SELECT * FROM alarmthresholds WHERE sensor_id = %s', (self.temperature_sensor_id,))
             temperature_thresholds = self.cursor.fetchall()
@@ -236,12 +174,6 @@ class SensorDataCollector:
             print(f"An unexpected error occurred: {e}")
 
     def processData(self, data):
-        """
-        Prosesserer mottatt JSON-data, lagrer verdier og genererer alarmer.
-
-        Args:
-            data (str): JSON-data som streng.
-        """
         try:
             dataJson = json.loads(data)
 
@@ -262,6 +194,7 @@ class SensorDataCollector:
                 else:
                     print("Temperature inside threshold")
 
+
                 acceleration = dataJson['acceleration']
                 sensor_id_acc = acceleration['sensor_id']
                 acceleration_x = acceleration['x']
@@ -276,9 +209,11 @@ class SensorDataCollector:
                 self.acceleration_y2 = acceleration_y
                 self.acceleration_z2 = acceleration_z
 
-                self.insertAccelerationData(sensor_id_acc, acceleration_x, acceleration_y, acceleration_z,
-                                            diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
+                self.insertAccelerationData(sensor_id_acc,acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
 
+                # can you make a loop that takes the diff acceleration and useses the insertAccelerationAlarm method to upload alarm data. take insperation from how i did it with temprature
+
+                # Loop to check acceleration differences and insert alarms
                 diff_accelerations = {
                     'x': diff_acceleration_x,
                     'y': diff_acceleration_y,
@@ -293,13 +228,56 @@ class SensorDataCollector:
                     else:
                         print(f"Acceleration {axis.upper()} inside threshold")
 
+
             elif "acceleration" in dataJson:
                 print("Acceleration data received")
-                # Samme logikk som over for akselerasjon...
+                acceleration = dataJson['acceleration']
+                sensor_id_acc = acceleration['sensor_id']
+                acceleration_x = acceleration['x']
+                acceleration_y = acceleration['y']
+                acceleration_z = acceleration['z']
+
+                diff_acceleration_x = self.acceleration_x2 - acceleration_x
+                diff_acceleration_y = self.acceleration_y2 - acceleration_y
+                diff_acceleration_z = self.acceleration_z2 - acceleration_z
+
+                self.acceleration_x2 = acceleration_x
+                self.acceleration_y2 = acceleration_y
+                self.acceleration_z2 = acceleration_z
+
+                self.insertAccelerationData(sensor_id_acc,acceleration_x, acceleration_y, acceleration_z, diff_acceleration_x, diff_acceleration_y, diff_acceleration_z)
+
+                # Loop to check acceleration differences and insert alarms
+                diff_accelerations = {
+                    'x': diff_acceleration_x,
+                    'y': diff_acceleration_y,
+                    'z': diff_acceleration_z
+                }
+
+                for axis, diff in diff_accelerations.items():
+                    if diff > self.acceleration_max_threshold:
+                        self.insertAccelerationAlarm(f"HIGH ALARM ACCELERATION {axis.upper()}")
+                    elif diff < self.acceleration_min_threshold:
+                        self.insertAccelerationAlarm(f"LOW ALARM ACCELERATION {axis.upper()}")
+                    else:
+                        print(f"Acceleration {axis.upper()} inside threshold")
+
+
 
             elif "temperature" in dataJson:
                 print("Temperature data received")
-                # Samme logikk som over for temperatur...
+                temperature_stamp = dataJson['temperature']
+                sensor_id_temp = temperature_stamp['sensor_id']
+                temperature = temperature_stamp['temperature']
+
+                self.insertTemperatureData(sensor_id_temp, temperature)
+
+                if temperature > self.temperature_max_threshold:
+                    self.insertTemperatureAlarm("HIGH ALARM TEMPERATURE")
+                elif temperature < self.temperature_min_threshold:
+                    self.insertTemperatureAlarm("LOW ALARM TEMPERATURE")
+                else:
+                    print("Temperature inside threshold")
             else:
                 print("no valid data recived")
 
@@ -307,16 +285,10 @@ class SensorDataCollector:
             print("Received invalid JSON")
 
     def stop(self):
-        """
-        Stopper innsamlingen og sender STOP-kommando.
-        """
         self.running = False
         self.sendCommandStop()
 
     def run(self):
-        """
-        Starter sensor, henter konfigurasjon og starter innsamlingsprosess.
-        """
         self.running = True
         print('run')
         self.sendCommandStop()
@@ -327,24 +299,28 @@ class SensorDataCollector:
         print(self.ser.readline().decode().strip())
         time.sleep(1)
         self.getSensorID()
+
         self.getAlarmThresholds()
+
         self.sendCommandStart()
         print(self.ser.readline().decode().strip())
         time.sleep(1)
+
 
         self.thread = threading.Thread(target=self.collectData)
         self.thread.start()
 
     def collectData(self):
-        """
-        Løpende innsamling og prosessering av data mens `self.running` er True.
-        """
         try:
-            while self.running:
+            while self.running == True:
+
+
                 if self.ser.in_waiting > 0:
                     data = self.ser.readline().decode().strip()
+
                     print(f"Received: {data}")
                     self.processData(data)
+                    # Example: Insert dummy sensor data
 
                 print('sleep')
                 time.sleep(self.interval)
@@ -367,14 +343,23 @@ db_config = {
 }
 
 if __name__ == "__main__":
-    """
-    Eksempel på hvordan man starter og stopper datainnsamling.
-    """
+    # Set the frequency of the sensor in Hz
     print('wfjlw')
     frequency = 1
+
     collector = SensorDataCollector(port='COM5', frequency=frequency)
+
     time.sleep(5)
+    #collector.sendCommandStart()
+
     collector.run()
     print('thrad')
     time.sleep(10)
     collector.stop()
+
+
+
+
+
+#time.sleep(30)
+#collector.send_command("STOP")

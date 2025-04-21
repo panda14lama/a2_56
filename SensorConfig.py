@@ -52,6 +52,9 @@ class SensorApp:
         self.start = tk.Button(root, text="Start datainnsamling")
         self.start.pack()
 
+        self.stopp = tk.Button(root, text="Stopp datainnsamling")
+        self.stopp.pack()
+
         self.save_button = tk.Button(root, text="Lagre Sensor", command=self.save_sensor)
         self.save_button.pack()
 

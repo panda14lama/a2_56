@@ -4,7 +4,7 @@ import mysql.connector
 import time
 from mysql.connector import Error
 import serial  # For mikrokontrollerkommunikasjon
-
+from DataColector import SensorDataCollector
 
 class SensorApp:
     """
@@ -24,6 +24,8 @@ class SensorApp:
         """
         self.root = root
         self.root.title("Sensor System")
+
+        self.collector = SensorDataCollector('COM5', 1)
 
         tk.Label(root, text="Sensor Type:").pack()
         self.sensor_input = tk.Entry(root)
@@ -49,13 +51,13 @@ class SensorApp:
         self.max_value_input = tk.Entry(root)
         self.max_value_input.pack()
 
-        self.start = tk.Button(root, text="Start datainnsamling")
+        self.start = tk.Button(root, text="Start datainnsamling",command= self.star_collection)
         self.start.pack()
 
-        self.stopp = tk.Button(root, text="Stopp datainnsamling")
+        self.stopp = tk.Button(root, text="Stopp datainnsamling", command= self.stopp_collection)
         self.stopp.pack()
 
-        self.save_button = tk.Button(root, text="Lagre Sensor", command=self.save_sensor)
+        self.save_button = tk.Button(root, text="Lagre Sensor", command= self.save_sensor)
         self.save_button.pack()
 
         self.log_box = scrolledtext.ScrolledText(root, state='normal', height=10)
@@ -67,7 +69,8 @@ class SensorApp:
                 host="localhost",
                 user="root",
                 password="root",
-                database="sensordata"
+                database="sensordata",
+                auth_plugin='mysql_native_password'  # Specify the authentication plugin
             )
             self.cursor = self.db.cursor()
             self.log("✅ Koblet til MySQL-database.")
@@ -126,6 +129,12 @@ class SensorApp:
                 self.log("❌ Ingen sensorer funnet.")
         except Error as e:
             self.log(f"❌ Klarte ikke lagre grenseverdier: {e}")
+
+    def star_collection(self):
+        self.collector.run() # this rogram crashing
+
+    def stopp_collection(self):
+        self.collector.stop()
 
     def save_sensor(self):
         """

@@ -5,14 +5,17 @@ import serial
 import json
 import time
 
+import threading
+
+
 class SensorDataCollector:
-    def __init__(self, port, baudrate, frequency):
+    def __init__(self, port, frequency):
 
         self.port = port
-        self.baudrate = baudrate
+        self.baudrate = 9600
         self.frequency = frequency
         self.interval = 1 / frequency
-        self.ser = serial.Serial(port, baudrate, timeout=1)
+        self.ser = serial.Serial(port, self.baudrate, timeout=1)
         time.sleep(2)  # Wait for the connection to establish
         self.conn = pymysql.connect(**db_config)
         self.cursor = self.conn.cursor()
@@ -24,7 +27,9 @@ class SensorDataCollector:
                 'database': 'sensordata'
             }
 
-        self.running = True
+        self.running = False
+        self.running = False
+        self.thread = None
 
         self.temperature_sensor_id = None
         self.accelerometer_id = None
@@ -280,10 +285,11 @@ class SensorDataCollector:
             print("Received invalid JSON")
 
     def stop(self):
-        self.running = 0
+        self.running = False
+        self.sendCommandStop()
 
     def run(self):
-        self.running = 1
+        self.running = True
         print('run')
         self.sendCommandStop()
         time.sleep(1)
@@ -299,8 +305,15 @@ class SensorDataCollector:
         self.sendCommandStart()
         print(self.ser.readline().decode().strip())
         time.sleep(1)
+
+
+        self.thread = threading.Thread(target=self.collectData)
+        self.thread.start()
+
+    def collectData(self):
         try:
-            while self.running == 1:
+            while self.running == True:
+
 
                 if self.ser.in_waiting > 0:
                     data = self.ser.readline().decode().strip()
@@ -331,14 +344,18 @@ db_config = {
 
 if __name__ == "__main__":
     # Set the frequency of the sensor in Hz
+    print('wfjlw')
     frequency = 1
 
-    collector = SensorDataCollector(port='COM5', baudrate=9600, frequency=frequency)
+    collector = SensorDataCollector(port='COM5', frequency=frequency)
 
     time.sleep(5)
     #collector.sendCommandStart()
 
     collector.run()
+    print('thrad')
+    time.sleep(10)
+    collector.stop()
 
 
 

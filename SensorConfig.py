@@ -51,13 +51,13 @@ class SensorApp:
         self.max_value_input = tk.Entry(root)
         self.max_value_input.pack()
 
-        self.start = tk.Button(root, text="Start datainnsamling",command= self.star_collection)
+        self.start = tk.Button(root, text="Start datainnsamling", command=self.star_collection)
         self.start.pack()
 
-        self.stopp = tk.Button(root, text="Stopp datainnsamling", command= self.stopp_collection)
+        self.stopp = tk.Button(root, text="Stopp datainnsamling", command=self.stopp_collection)
         self.stopp.pack()
 
-        self.save_button = tk.Button(root, text="Lagre Sensor", command= self.save_sensor)
+        self.save_button = tk.Button(root, text="Lagre Sensor", command=self.save_sensor)
         self.save_button.pack()
 
         self.log_box = scrolledtext.ScrolledText(root, state='normal', height=10)
@@ -131,10 +131,18 @@ class SensorApp:
             self.log(f"❌ Klarte ikke lagre grenseverdier: {e}")
 
     def star_collection(self):
-        self.collector.run() # this rogram crashing
+        """
+        Starter datainnsamling ved å kjøre SensorDataCollector.
+        """
+        self.collector.run()  # this starts a loop
+        self.log("🚀 Datainnsamling startet.")
 
     def stopp_collection(self):
+        """
+        Stopper datainnsamling ved å stoppe SensorDataCollector.
+        """
         self.collector.stop()
+        self.log("🛑 Datainnsamling stoppet.")
 
     def save_sensor(self):
         """
@@ -191,3 +199,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = SensorApp(root)
     root.mainloop()
+

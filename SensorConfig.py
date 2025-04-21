@@ -33,9 +33,13 @@ class SensorApp:
         self.location_input = tk.Entry(root)
         self.location_input.pack()
 
-        tk.Label(root, text="Grensetype (f.eks. temp):").pack()
-        self.threshold_type_input = tk.Entry(root)
-        self.threshold_type_input.pack()
+        tk.Label(root, text="threshold_id: 1,2...").pack()
+        self.threshold_id_input = tk.Entry(root)
+        self.threshold_id_input.pack()
+
+        tk.Label(root, text="parameter: T, A...").pack()
+        self.parameter_input = tk.Entry(root)
+        self.parameter_input.pack()
 
         tk.Label(root, text="Min verdi:").pack()
         self.min_value_input = tk.Entry(root)
@@ -44,6 +48,9 @@ class SensorApp:
         tk.Label(root, text="Maks verdi:").pack()
         self.max_value_input = tk.Entry(root)
         self.max_value_input.pack()
+
+        self.start = tk.Button(root, text="Start datainnsamling")
+        self.start.pack()
 
         self.save_button = tk.Button(root, text="Lagre Sensor", command=self.save_sensor)
         self.save_button.pack()
@@ -56,7 +63,7 @@ class SensorApp:
             self.db = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="rgtt4Lama",
+                password="root",
                 database="sensordata"
             )
             self.cursor = self.db.cursor()
@@ -89,22 +96,31 @@ class SensorApp:
         except serial.SerialException as e:
             self.log(f"❌ Feil ved sending til mikrokontroller: {e}")
 
-    def save_threshold(self, sensor_id, threshold_type, min_val, max_val):
+    def save_threshold(self, parameter, min_val, max_val):
         """
         Lagrer grenseverdier tilknyttet en sensor i alarmthresholds-tabellen.
 
-        :param sensor_id: ID-en til sensoren
-        :param threshold_type: F.eks. "temp" eller "accel"
+        :param parameter: T, A
         :param min_val: Minimum tillatt verdi
         :param max_val: Maksimum tillatt verdi
         """
         try:
+            # Henter siste sensor_id
             self.cursor.execute("""
-                INSERT INTO alarmthresholds (sensor_id, threshold_type, min_value, max_value)
-                VALUES (%s, %s, %s, %s)
-            """, (sensor_id, threshold_type, min_val, max_val))
-            self.db.commit()
-            self.log(f"✅ Grenseverdier lagret: {threshold_type} ({min_val} - {max_val})")
+                SELECT sensor_id FROM SENSORS ORDER BY installation_date DESC LIMIT 1
+            """)
+            result = self.cursor.fetchone()
+            if result:
+                sensor_id = result[0]
+                # Sett inn treshold
+                self.cursor.execute("""
+                    INSERT INTO alarmthresholds (sensor_id, parameter, min_value, max_value)
+                    VALUES (%s, %s, %s, %s)
+                """, (sensor_id, parameter, min_val, max_val))
+                self.db.commit()
+                self.log(f"✅ Grenseverdier lagret: {parameter} ({min_val} - {max_val})")
+            else:
+                self.log("❌ Ingen sensorer funnet.")
         except Error as e:
             self.log(f"❌ Klarte ikke lagre grenseverdier: {e}")
 
@@ -138,17 +154,16 @@ class SensorApp:
                 VALUES (%s, %s, %s)
             """, (sensor_type, location, time.strftime("%Y-%m-%d")))
             self.db.commit()
-            sensor_id = self.cursor.lastrowid
             self.log(f"✅ Lagret sensor: {sensor_type} på {location}")
 
             # Lagre grenseverdier hvis felt er utfylt
-            threshold_type = self.threshold_type_input.get().strip()
+            parameter = self.parameter_input.get().strip()
             min_val = self.min_value_input.get().strip()
             max_val = self.max_value_input.get().strip()
 
-            if threshold_type and min_val and max_val:
+            if parameter and min_val and max_val:
                 try:
-                    self.save_threshold(sensor_id, threshold_type, float(min_val), float(max_val))
+                    self.save_threshold(parameter, float(min_val), float(max_val))
                 except ValueError:
                     self.log("⚠️ Min/Maks-verdier må være tall.")
             else:
@@ -159,7 +174,6 @@ class SensorApp:
 
         except Error as e:
             self.log(f"❌ Databasefeil: {e}")
-
 
 if __name__ == "__main__":
     root = tk.Tk()

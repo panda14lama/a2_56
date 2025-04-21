@@ -35,10 +35,6 @@ class SensorApp:
         self.location_input = tk.Entry(root)
         self.location_input.pack()
 
-        tk.Label(root, text="threshold_id: 1,2...").pack()
-        self.threshold_id_input = tk.Entry(root)
-        self.threshold_id_input.pack()
-
         tk.Label(root, text="parameter: T, A...").pack()
         self.parameter_input = tk.Entry(root)
         self.parameter_input.pack()
@@ -96,8 +92,11 @@ class SensorApp:
         try:
             # Tilpass COM-port og baudrate til mikrokontrolleren din!
             with serial.Serial('COM5', 9600, timeout=2) as ser:
+                if not ser.is_open:
+                    ser.open()
                 config_data = f"type={sensor_type};location={location};\n"
                 ser.write(config_data.encode('utf-8'))
+
                 self.log(f"📤 Sendt til mikrokontroller: {config_data.strip()}")
         except serial.SerialException as e:
             self.log(f"❌ Feil ved sending til mikrokontroller: {e}")
